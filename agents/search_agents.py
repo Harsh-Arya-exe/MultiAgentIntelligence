@@ -9,15 +9,29 @@ class WebSearchAgent:
         self.search = TavilyClient()
         self.llm = ChatGroq(model_name="Gemma2-9b-It")
 
-    def search_and_analyze(self, query: str) -> str:
+    def search_and_analyze(self, query: str, memory=None) -> str:
+        # Get recent context if available
+        context = ""
+        if memory:
+            recent_msgs = memory.get_recent_messages(3)  # Get last 3 messages
+            if recent_msgs:
+                context = "\n".join([f"{msg['role']}: {msg['content']}" for msg in recent_msgs])
+
         search_results = self.search.search(query, search_depth="advanced")
         formatted_results = "\n".join([f"- {result['title']}: {result['content']}" 
                                      for result in search_results['results']])
 
-        prompt = f"""Analyze these search results and provide detailed insights:
+        prompt = f"""Given the following conversation context and search results, provide a detailed answer:
+
+        Previous conversation:
+        {context}
+
+        Current question: {query}
+
+        Search results:
         {formatted_results}
 
-        Consider multiple perspectives and provide a comprehensive analysis for the query: {query}"""
+        Provide a comprehensive analysis that takes into account both the conversation history and the search results."""
 
         response = self.llm.invoke([HumanMessage(content=prompt)])
         return response.content
@@ -28,15 +42,29 @@ class QuickSearchAgent:
         self.search = TavilyClient()
         self.llm = ChatGroq(model_name="Gemma2-9b-It")
 
-    def search_and_summarize(self, query: str) -> str:
+    def search_and_summarize(self, query: str, memory=None) -> str:
+        # Get recent context if available
+        context = ""
+        if memory:
+            recent_msgs = memory.get_recent_messages(3)  # Get last 3 messages
+            if recent_msgs:
+                context = "\n".join([f"{msg['role']}: {msg['content']}" for msg in recent_msgs])
+
         search_results = self.search.search(query, search_depth="basic")
         formatted_results = "\n".join([f"- {result['title']}: {result['content']}" 
                                      for result in search_results['results']])
 
-        prompt = f"""Summarize these search results concisely:
+        prompt = f"""Given the following conversation context and search results, provide a concise answer:
+
+        Previous conversation:
+        {context}
+
+        Current question: {query}
+
+        Search results:
         {formatted_results}
 
-        Focus on the most relevant information for the query: {query}"""
+        Provide a focused response that considers both the conversation history and search results."""
 
         response = self.llm.invoke([HumanMessage(content=prompt)])
         return response.content

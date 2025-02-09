@@ -19,7 +19,14 @@ class RAGAgent:
         """Calculate text similarity using SequenceMatcher."""
         return SequenceMatcher(None, text1.lower(), text2.lower()).ratio()
 
-    def query(self, question: str) -> str:
+    def query(self, question: str, memory=None) -> str:
+        # Get conversation context if available
+        context = ""
+        if memory:
+            recent_msgs = memory.get_recent_messages(3)  # Get last 3 messages
+            if recent_msgs:
+                context = "\n".join([f"{msg['role']}: {msg['content']}" for msg in recent_msgs])
+
         # Find relevant documents using simple text similarity
         similarities = [
             (doc, self.similarity_score(question, doc.page_content))
@@ -28,16 +35,19 @@ class RAGAgent:
 
         # Get top 3 most similar documents
         relevant_docs = sorted(similarities, key=lambda x: x[1], reverse=True)[:3]
-        context = "\n".join([doc[0].page_content for doc in relevant_docs])
+        doc_context = "\n".join([doc[0].page_content for doc in relevant_docs])
 
-        prompt = f"""Using the following context, answer the question:
+        prompt = f"""Using the following context and conversation history, answer the question:
 
-        Context:
+        Previous conversation:
         {context}
 
-        Question: {question}
+        Knowledge base context:
+        {doc_context}
 
-        Provide a detailed answer based on the context provided."""
+        Current question: {question}
+
+        Provide a detailed answer that takes into account both the conversation history and the knowledge base information."""
 
         response = self.llm.invoke(prompt)
         return response.content

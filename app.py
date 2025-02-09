@@ -45,13 +45,13 @@ if prompt := st.chat_input("What would you like to know?"):
         # Get agent selection from supervisor
         selected_agent = st.session_state.agents['supervisor'].analyze_query(prompt)
 
-        # Get response from selected agent
+        # Get response from selected agent with memory context
         if selected_agent == 'rag':
-            response = st.session_state.agents['rag'].query(prompt)
+            response = st.session_state.agents['rag'].query(prompt, memory=st.session_state.memory)
         elif selected_agent == 'quick':
-            response = st.session_state.agents['quick'].search_and_summarize(prompt)
+            response = st.session_state.agents['quick'].search_and_summarize(prompt, memory=st.session_state.memory)
         else:  # web
-            response = st.session_state.agents['web'].search_and_analyze(prompt)
+            response = st.session_state.agents['web'].search_and_analyze(prompt, memory=st.session_state.memory)
 
         # Display assistant response
         with st.chat_message("assistant"):
